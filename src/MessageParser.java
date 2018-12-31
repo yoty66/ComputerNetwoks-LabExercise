@@ -5,10 +5,44 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.*;
 public class MessageParser {
-    public static ConcurrentHashMap<String, Object> HttpRequestParser() {
-        ConcurrentHashMap x = new ConcurrentHashMap();
-        return x;
+
+
+    public static ConcurrentHashMap<String, Object> HttpRequestParser(Socket clientSocket) {
+        ConcurrentHashMap<String, Object> map = new ConcurrentHashMap();
+        InputStream inStream=null ;
+        try
+        {
+            inStream = clientSocket.getInputStream();
+            byte[] value;
+        }
+
+
+        catch (IOException e) {
+            System.err.println(e.getMessage());
+        }
+        catch (NullPointerException e) {
+            System.err.println(e.getMessage());
+        }
+        finally {
+            try{
+                inStream.close();
+            }
+            catch(IOException e)
+            {
+
+            }
+        }
+        return map;
+
     }
+
+
+
+
+
+
+
+
 
     public static ConcurrentHashMap<String, Object> Socks4Parser(Socket clientSocket) {
 //        ConcurrentHashMap x = new ConcurrentHashMap();
@@ -16,9 +50,10 @@ public class MessageParser {
 //        try {
 
         ConcurrentHashMap<String, Object> map = new ConcurrentHashMap();
+        InputStream inStream=null ;
 try
 {
-            InputStream inStream = clientSocket.getInputStream();
+             inStream = clientSocket.getInputStream();
 
             byte[] value;
 
@@ -40,14 +75,27 @@ try
         catch (NullPointerException e) {
             System.err.println(e.getMessage());
         }
+        finally {
+    try{
+        inStream.close();
+    }
+    catch(IOException e)
+    {
 
+    }
+        }
         return map;
     }
 
     //for test perpose
-    public static void Socks4MessageParser (ConcurrentHashMap<String, Object> map)
+    public static void Socks4ParserPrinter (ConcurrentHashMap<String, Object> map)
     {
-                
+
+        System.out.println("VN"+map.get("VN"));
+        System.out.println("CD"+map.get("CD"));
+        System.out.println("DSTPORT"+map.get("DSTPORT"));
+        System.out.println("DSTIP"+map.get("DSTIP"));
+
     }
 }
 

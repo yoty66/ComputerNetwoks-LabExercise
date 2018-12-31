@@ -28,7 +28,7 @@ class EchoRunnable implements Runnable {
             )
             {
                 ConcurrentHashMap<String, Object> map =MessageParser.Socks4Parser(clientSocket);
-                System.out.println(map.toString());
+                MessageParser.Socks4ParserPrinter(map);
 
 //                while ((clientbyte = (byte)inStream.read()) != 0)
 //                {
