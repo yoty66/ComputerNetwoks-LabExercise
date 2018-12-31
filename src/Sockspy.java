@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -26,33 +27,35 @@ class EchoRunnable implements Runnable {
                     InputStream inStream=clientSocket.getInputStream()
             )
             {
+                ConcurrentHashMap<String, Object> map =MessageParser.Socks4Parser(clientSocket);
+                System.out.println(map.toString());
 
-                while ((clientbyte = (byte)inStream.read()) != 0)
-                {
-                    System.out.println(clientbyte);
-                }
-                System.out.println("end stream 1");
-                while ((clientbyte = (byte)inStream.read()) != 0)
-                {
-                    System.out.println(clientbyte);
-                }
-                System.out.println("end stream 2");
-                outToClient.write(0);
-                outToClient.write(90);
-
-                outToClient.write(1);
-                outToClient.write(1);
-                outToClient.write(1);
-                outToClient.write(1);
-                outToClient.write(1);
-                outToClient.write(1);
-
-
-                while ((capitalizedSentence = inFromClient.readLine()) != null)
-
-                {
-                    System.out.println(capitalizedSentence);
-                }
+//                while ((clientbyte = (byte)inStream.read()) != 0)
+//                {
+//                    System.out.println(clientbyte);
+//                }
+//                System.out.println("end stream 1");
+//                while ((clientbyte = (byte)inStream.read()) != 0)
+//                {
+//                    System.out.println(clientbyte);
+//                }
+//                System.out.println("end stream 2");
+//                outToClient.write(0);
+//                outToClient.write(90);
+//
+//                outToClient.write(1);
+//                outToClient.write(1);
+//                outToClient.write(1);
+//                outToClient.write(1);
+//                outToClient.write(1);
+//                outToClient.write(1);
+//
+//
+//                while ((capitalizedSentence = inFromClient.readLine()) != null)
+//
+//                {
+//                    System.out.println(capitalizedSentence);
+//                }
 
 }
          catch(IOException e){
