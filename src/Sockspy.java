@@ -1,32 +1,84 @@
 import java.io.*;
 import java.net.*;
-import java.util.*;
-import java.nio.*;
-public class Sockspy {
-    public static void main(String[] args) {
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-        try {
-            InetAddress local_adress = InetAddress.getLocalHost();
-//            InetAddress test=InetAddress.getByName("127.0.0.1");
-//            System.out.println(local_adress.toString());
+class EchoRunnable implements Runnable {
+    private Socket clientSocket = null;
 
-            ServerSocket server = new ServerSocket(8080);
+    public EchoRunnable(Socket clientSocket) {
+        this.clientSocket = clientSocket;
+//        try {
+//            this.clientSocket.setSoTimeout(500);
+//        } catch (SocketException e) {
+//        }
 
-            System.out.println(server.toString());
-//            support one connection :
-            System.out.println("open accept()");
-            Socket connection = server.accept();
-            System.out.println("accepted");
-            System.out.println(server.toString());
-        } catch (UnknownHostException e) {
-            System.out.println("UnknownHostException");
-        } catch (IOException e) {
-            System.out.println("IOException");
+    }
+        @Override
+        public void run () {
+            System.out.println("connected");
+            byte clientbyte;
+            String capitalizedSentence;
+            try (
+                    BufferedReader inFromClient =
+                            new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                    DataOutputStream outToClient = new DataOutputStream(clientSocket.getOutputStream());
+                    InputStream inStream=clientSocket.getInputStream()
+            )
+            {
+
+                while ((clientbyte = (byte)inStream.read()) != 0)
+                {
+                    System.out.println(clientbyte);
+                }
+                System.out.println("end stream 1");
+                while ((clientbyte = (byte)inStream.read()) != 0)
+                {
+                    System.out.println(clientbyte);
+                }
+                System.out.println("end stream 2");
+                outToClient.write(0);
+                outToClient.write(90);
+
+                outToClient.write(1);
+                outToClient.write(1);
+                outToClient.write(1);
+                outToClient.write(1);
+                outToClient.write(1);
+                outToClient.write(1);
+
+
+                while ((capitalizedSentence = inFromClient.readLine()) != null)
+
+                {
+                    System.out.println(capitalizedSentence);
+                }
+
+}
+         catch(IOException e){
+                System.err.println(e.getMessage());
+            }
+            finally{
+                try {
+                    this.clientSocket.close();
+                } catch (IOException e) {
+                }
+            }
         }
     }
 
+
+class Sockspy {
+    public static void main(String argv[]) throws Exception {
+        ServerSocket welcomeSocket = new ServerSocket(8080);  // bind + listen
+        ExecutorService executor = Executors.newFixedThreadPool(20);
+
+        while (true) {
+            Socket clientSocket = welcomeSocket.accept();
+            Runnable worker = new EchoRunnable(clientSocket);
+
+            executor.execute(worker);
+        }
+        // executor.shutdown();
+    }
 }
-
-
-
-
