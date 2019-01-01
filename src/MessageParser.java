@@ -6,14 +6,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.*;
 public class MessageParser {
 
-
+// to be continue
     public static ConcurrentHashMap<String, Object> HttpRequestParser(Socket clientSocket) {
         ConcurrentHashMap<String, Object> map = new ConcurrentHashMap();
         InputStream inStream=null ;
         try
         {
             inStream = clientSocket.getInputStream();
-            byte[] value;
+            BufferedInputStream request=new BufferedInputStream(inStream);
+
         }
 
 
