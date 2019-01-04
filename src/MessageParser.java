@@ -1,5 +1,7 @@
 import java.io.*;
 import java.net.*;
+import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ConcurrentHashMap;
@@ -7,17 +9,23 @@ import java.util.*;
 public class MessageParser {
 
 // to be continue
-    public static byte [] HttpRequestParser(Socket clientSocket) {
+    public static byte [] HttpRequestParser(SocketChannel clientChannel) {
         ConcurrentHashMap<String, Object> map = new ConcurrentHashMap();
-        InputStream inStream=null ;
-        byte [] reqeustbuffer=new byte [8192  //max size of an http request
-                +1000 ];
+//        InputStream inStream=null ;
+//        byte [] reqeustbuffer=new byte [8192  //max size of an http request
+//                +1000 ];
+        ByteBuffer requestbuffer=null;
         int byteRed=0;
         try
         {
-            inStream = clientSocket.getInputStream();
-            BufferedInputStream requestbuffer=new BufferedInputStream(inStream);
-            byteRed =requestbuffer.read(reqeustbuffer,0,9192);
+//            inStream = clientSocket.getInputStream();
+//            BufferedInputStream requestbuffer=new BufferedInputStream(inStream);
+             requestbuffer=ByteBuffer.allocate(
+                    8192  //max size of an http request
+                            +1000
+            );
+             requestbuffer.clear();
+            byteRed =clientChannel.read(requestbuffer);
         }
 
 
@@ -36,7 +44,7 @@ public class MessageParser {
 //
 //            }
 //        }
-        return Arrays.copyOfRange(reqeustbuffer, 0, byteRed+1);
+        return Arrays.copyOfRange(requestbuffer.array(), 0, byteRed+1);
 
     }
 
@@ -48,32 +56,49 @@ public class MessageParser {
 
 
 
-    public static ConcurrentHashMap<String, Object> Socks4Parser(Socket clientSocket) {
+    public static ConcurrentHashMap<String, Object> Socks4Parser(SocketChannel clientSocket) {
 //        ConcurrentHashMap x = new ConcurrentHashMap();
 //        return x;
 //        try {
-
+        ByteBuffer byteBuffer=null;
         ConcurrentHashMap<String, Object> map = new ConcurrentHashMap();
-        InputStream inStream=null ;
+        int byteRed=0;
+        byte[] valuesVMtoDSTIP=null;
+//        InputStream inStream=null ;
 try
 {
-             inStream = clientSocket.getInputStream();
+//             inStream = clientSocket.getInputStream();
 
-            byte[] value;
+//           =new byte[8];
+//            clientSocket.read()
+//            value = new byte[]{(byte) inStream.read()};
+
+        byteBuffer=ByteBuffer.allocate(8);
+        byteBuffer.clear();
+        byteRed=clientSocket.read(byteBuffer);
+         byteBuffer.clear();
+        valuesVMtoDSTIP=byteBuffer.array();
+     //TODO add error
+     if(byteRed!=8)
+     {
+         byteRed=5;
+     }
+            map.put("VN", (byte)valuesVMtoDSTIP[0]);
 
 //            value = new byte[]{(byte) inStream.read()};
-            map.put("VN", inStream.read());
-
-//            value = new byte[]{(byte) inStream.read()};
-            map.put("CD", inStream.read());
+            map.put("CD", (byte)valuesVMtoDSTIP[1]);
 //            Integer cdint=new Integer((int)value[0]);
 //            map.put("CD-INT", cdint);
 
-            value = new byte[]{(byte) inStream.read(), (byte) inStream.read()};
-            map.put("DSTPORT", value);
 
-            value = new byte[]{(byte) inStream.read(), (byte) inStream.read(), (byte) inStream.read(), (byte) inStream.read()};
-            map.put("DSTIP", value);
+    int port=(valuesVMtoDSTIP[2] & 0xFF) << 8 | (valuesVMtoDSTIP[3] & 0xFF);
+    map.put("DSTPORT", port);
+
+    String IPvalue = (0xff &valuesVMtoDSTIP[4])+"."+(0xff &valuesVMtoDSTIP[5])
+            +"."+(0xff &valuesVMtoDSTIP[6])+"."+(0xff &valuesVMtoDSTIP[7]);
+            map.put("DSTIP", IPvalue);
+
+            //DSTIP-84.-39.22.46
 }
         catch (IOException e) {
             System.err.println(e.getMessage());
@@ -91,6 +116,7 @@ try
 //
 //    }
 //        }
+
         return map;
     }
 
@@ -123,16 +149,34 @@ try
 
 //        }
     }
+
+    public static int Socks4MessageValidator( ConcurrentHashMap<String, Object> map)
+    {
+        int CD=(byte)map.get("CD");
+        if(CD!=1 )
+        {
+            return 1;
+//            System.out.println("wrong Sock4 request - Command isn't supported");
+        }
+        if ((int)(byte)map.get("VN")!=4 )
+        {
+            return 2;
+//            System.out.println("wrong Sock4 request - Wrong version ");
+        }
+        return 0;
+    }
     //for tests perpose
-    public static void Socks4ParserPrinter (ConcurrentHashMap<String, Object> map)
+    public  static void Socks4ParserPrinter (ConcurrentHashMap<String, Object> map)
     {
 
-        System.out.println("VN"+(int)map.get("VN"));
+        System.out.println("VN"+map.get("VN"));
         System.out.println("CD"+map.get("CD"));
         System.out.println("DSTPORT"+map.get("DSTPORT"));
         System.out.println("DSTIP"+map.get("DSTIP"));
 
     }
+
+
 }
 
 
