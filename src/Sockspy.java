@@ -10,74 +10,88 @@ import java.util.*;
 
 class EchoRunnable implements Runnable {
     private SocketChannel clientSocket ;
+    private int Tnumber;
 
-    public EchoRunnable(SocketChannel clientSocket) {
+    public EchoRunnable(SocketChannel clientSocket,int Tnumber) {
         this.clientSocket = clientSocket;
+        this.Tnumber=Tnumber;
 //        try {
 //            this.clientSocket.setSoTimeout(500);
 //        } catch (SocketException e) {
 //        }
 
     }
-        @Override
-        public void run () {
-            System.out.println("connected");
-            try
-//                    (
-//                    BufferedReader inFromClient =
-//                            new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-//                    DataOutputStream outToClient = new DataOutputStream(clientSocket.getOutputStream());
-//                    InputStream inStream=clientSocket.getInputStream()
-//            )
-            {
-
-//                if((int)map.get("CD")!=1  ||(int)map.get("VN")!=4  )
+//        @Override
+//        public void run () {
+//            System.out.println("connected");
+//            try
+////                    (
+////                    BufferedReader inFromClient =
+////                            new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+////                    DataOutputStream outToClient = new DataOutputStream(clientSocket.getOutputStream());
+////                    InputStream inStream=clientSocket.getInputStream()
+////            )
+//            {
+//
+////                if((int)map.get("CD")!=1  ||(int)map.get("VN")!=4  )
+////                {
+////                    System.out.println("wrong Sock4 request");
+////                }
+//
+////                else
+////                {
+////                    MessageParser.Socks4ReplyWriter(90,outToClient);
+////                    System.out.println(new String(MessageParser.HttpRequestParser(clientSocket)));
+////
+////                }
+//
+//                //Establish Client channel
+//
+//                //Parse Socks 4 request
+//                ConcurrentHashMap<String, Object> map =MessageParser.Socks4Parser(clientSocket);
+//                MessageParser.Socks4ParserPrinter(map);
+//                // validate request
+//
+//                // 0 - message is valid 1-"wrong Sock4 request - Command isn't supported" 2-"wrong Sock4 request - Wrong version "
+//               int validrequest= MessageParser.Socks4MessageValidator(map);
+//
+//                //handle falsy request
+//
+//                if(validrequest!=0 )
 //                {
-//                    System.out.println("wrong Sock4 request");
-//                }
-
-//                else
-//                {
-//                    MessageParser.Socks4ReplyWriter(90,outToClient);
-//                    System.out.println(new String(MessageParser.HttpRequestParser(clientSocket)));
 //
 //                }
-
-                //Establish Client channel
-
-                //Parse Socks 4 request
-                ConcurrentHashMap<String, Object> map =MessageParser.Socks4Parser(clientSocket);
-                MessageParser.Socks4ParserPrinter(map);
-                // validate request
-
-                // 0 - message is valid 1-"wrong Sock4 request - Command isn't supported" 2-"wrong Sock4 request - Wrong version "
-               int validrequest= MessageParser.Socks4MessageValidator(map);
-
-                //handle falsy request
-
-                if(validrequest!=0 )
-                {
-
-                }
-                //Establish dst channel
-//                SocketChannel socketChannel = SocketChannel.open();
-//                socketChannel.connect(new InetSocketAddress("http://jenkov.com", 80));
-                //establish selector
-                //close when one terminates
-
-}
-//         catch(IOException e){
-//                System.err.println(e.getMessage());
+//                //Establish dst channel
+////                SocketChannel socketChannel = SocketChannel.open();
+////                socketChannel.connect(new InetSocketAddress("http://jenkov.com", 80));
+//                //establish selector
+//                //close when one terminates
+//
+//}
+////         catch(IOException e){
+////                System.err.println(e.getMessage());
+////            }
+//            finally{
+//                try {
+//                    if(this.clientSocket!=null)
+//                    this.clientSocket.close();
+//                } catch (IOException e) {
+//                }
 //            }
-            finally{
-                try {
-                    if(this.clientSocket!=null)
-                    this.clientSocket.close();
-                } catch (IOException e) {
-                }
-            }
+//        }
+
+
+    // test: stop excepting after 20 concurrent connections are established
+    @Override
+    public void run () {
+        System.out.println("Thread number:"+this.Tnumber);
+        while(true)
+        {
+
         }
     }
+    }
+//    }
 
 
 class Sockspy {
@@ -86,7 +100,7 @@ class Sockspy {
         welcomeSocket.bind(new InetSocketAddress(8080));
 //                new ServerSocketChannel(8080);  // bind + listen
         ExecutorService executor = Executors.newFixedThreadPool(20);
-
+        int Tnember=1;
         while (true)
         {
             SocketChannel clientSocket = welcomeSocket.accept();
@@ -94,8 +108,9 @@ class Sockspy {
 //            SocketChannel clientChannel=SocketChannel.open();
 //             clientChannel =clientSocket.getChannel();
             boolean empty =clientSocket==null;
-            System.out.println("clientChannel is empty: "+empty);
-            Runnable worker = new EchoRunnable(clientSocket);
+//            System.out.println("clientChannel is empty: "+empty);
+            Runnable worker = new EchoRunnable(clientSocket,Tnember);
+            Tnember++;
             executor.execute(worker);
         }
         // executor.shutdown();
