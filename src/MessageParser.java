@@ -6,7 +6,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.*;
-public class MessageParser {
+ class MessageParser {
 
 // to be continue
     public static byte [] HttpRequestParser(SocketChannel clientChannel) {
@@ -120,20 +120,21 @@ try
         return map;
     }
 
-    public static void  Socks4ReplyWriter(int reply, DataOutputStream outToClient) {
+    public static void  Socks4ReplyWriter(int reply, SocketChannel outToClient) {
 //        DataOutputStream outToClient=null;
         try {
+        byte[] replyArray={0,(byte)reply,1,1,1,1,1,1};
 
-
+            outToClient.write(ByteBuffer.wrap(replyArray));
 //            outToClient = new DataOutputStream(clientSocket.getOutputStream());
-            outToClient.write(0);
-            outToClient.write(reply);
-            outToClient.write(1);
-            outToClient.write(1);
-            outToClient.write(1);
-            outToClient.write(1);
-            outToClient.write(1);
-            outToClient.write(1);
+//            outToClient.write(0);
+//            outToClient.write(reply);
+//            outToClient.write(1);
+//            outToClient.write(1);
+//            outToClient.write(1);
+//            outToClient.write(1);
+//            outToClient.write(1);
+//            outToClient.write(1);
         } catch (IOException e) {
             System.err.println(e.getMessage());
         } catch (NullPointerException e) {
@@ -158,7 +159,8 @@ try
             return 1;
 //            System.out.println("wrong Sock4 request - Command isn't supported");
         }
-        if ((int)(byte)map.get("VN")!=4 )
+        int VN=(int)(byte)map.get("VN");
+        if (VN!=4 )
         {
             return 2;
 //            System.out.println("wrong Sock4 request - Wrong version ");
@@ -175,6 +177,11 @@ try
         System.out.println("DSTIP"+map.get("DSTIP"));
 
     }
+
+    public static InetAddress  DomainIPresolve  ( String domain ) throws UnknownHostException
+     {
+        return InetAddress.getByName(domain);
+     }
 
 
 }
