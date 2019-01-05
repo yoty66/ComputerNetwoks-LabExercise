@@ -11,9 +11,7 @@ import java.util.*;
 // to be continue
     public static byte [] HttpRequestParser(SocketChannel clientChannel) {
         ConcurrentHashMap<String, Object> map = new ConcurrentHashMap();
-//        InputStream inStream=null ;
-//        byte [] reqeustbuffer=new byte [8192  //max size of an http request
-//                +1000 ];
+
         ByteBuffer requestbuffer=null;
         int byteRed=0;
         try
@@ -24,7 +22,7 @@ import java.util.*;
                     8192  //max size of an http request
                             +1000
             );
-             requestbuffer.clear();
+//             requestbuffer.clear();
             byteRed =clientChannel.read(requestbuffer);
         }
 
@@ -44,10 +42,11 @@ import java.util.*;
 //
 //            }
 //        }
+        if(byteRed==-1)
+            return null;
         return Arrays.copyOfRange(requestbuffer.array(), 0, byteRed+1);
 
     }
-
 
 
 
@@ -73,7 +72,7 @@ try
 //            clientSocket.read()
 //            value = new byte[]{(byte) inStream.read()};
 
-        byteBuffer=ByteBuffer.allocate(8);
+        byteBuffer=ByteBuffer.allocate(100);
         byteBuffer.clear();
         byteRed=clientSocket.read(byteBuffer);
          byteBuffer.clear();

@@ -31,19 +31,11 @@ class EchoRunnable implements Runnable {
             try
             {
 
-
-//                {
-//                    MessageParser.Socks4ReplyWriter(90,outToClient);
-//                    System.out.println(new String(MessageParser.HttpRequestParser(clientSocket)));
-//
-//                }
-
-                //Establish Client channel
-
                 //Parse Socks 4 request
                 ConcurrentHashMap<String, Object> map =MessageParser.Socks4Parser(clientChannel);
                 MessageParser.Socks4ParserPrinter(map);
                 // validate request
+
 
                 // 0 - message is valid 1-"wrong Sock4 request - Command isn't supported" 2-"wrong Sock4 request - Wrong version "
                int validrequest= MessageParser.Socks4MessageValidator(map);
@@ -52,17 +44,29 @@ class EchoRunnable implements Runnable {
 
                 if(validrequest!=0 )
                 {
-
+                    System.err.println("Connection error: while Parsing  Socks4 request: invalid request ");
+                    return;
                 }
                 //Establish dst channel
+                String DSTIP=(String)map.get("DSTIP");
+                int DSTPORT=(int)map.get("DSTPORT");
+                String clientsIP="127.0.0.1"; //to be used if connection succseed
+                String   clientsPORT = this.clientChannel.getRemoteAddress().toString().replace("/","");
                 this.destinationChannel  = SocketChannel.open();
                 InetSocketAddress destinationAdress=new InetSocketAddress(
-                        (String)map.get("DSTIP"),
-                        (int)map.get("DSTPORT"));
+                        DSTIP  ,
+                        DSTPORT);
+
 
                 if((destinationChannel.connect(destinationAdress))==true)
                 {
                     MessageParser.Socks4ReplyWriter(90,clientChannel);
+                    System.out.println("Successful connection from " +
+//                            this.clientChannel.getRemoteAddress().toString() +
+//                           x +
+                            " to "
+                            + DSTIP+":"+DSTPORT );
+
                 }
 
 
@@ -70,56 +74,111 @@ class EchoRunnable implements Runnable {
                 //establish selector
                this.establishSelector(clientChannel,destinationChannel);
 
+
+
+                ////bug testing
+
+
+//                ByteBuffer x=ByteBuffer.allocate(
+//                        8192  //max size of an http request
+//                        +1000);
+//                x.clear();
+//                int byteRed=clientChannel.read(x);
+//                if(byteRed==-1)
+//                {
+//                    System.out.println("channel closed");
+//                    return;
+//                }
+//
+//                x.flip();
+//                String message= new String(Arrays.copyOfRange(x.array(),0,byteRed+1));
+//                System.out.println("messgae:"+message);
+//                int bytewritten=this.destinationChannel.write(x);
+//                x.clear();
+//                if(bytewritten!=message.length())
+//                {
+//                    System.out.println("inffff");
+////                    return;
+//                }
+//
+//                ByteBuffer y=ByteBuffer.allocate(
+//                        8192  //max size of an http request
+//                                +1000);
+//                y.clear();
+//                 byteRed=destinationChannel.read(y);
+//                if(byteRed==-1)
+//                {
+//                    System.out.println("channel closed");
+//                    return;
+//                }
+//
+//                y.flip();
+//                 message= new String(Arrays.copyOfRange(y.array(),0,byteRed+1));
+//                System.out.println("messgae:"+message);
+
+////bug testing
+
+
+
                //main loop
-                while (true)
-                {
-                    selector.select();
-                    Set<SelectionKey> selectedKeys = selector.selectedKeys();
-                 if(selectedKeys.size()!=2)
-                    {
-                     continue;
-                    }
-                    //else
-                    selectedKeys.clear();
-                   if(this.keyClient.isReadable()&&this.keyDestination.isWritable())
-                   {
-                       byte [] message=MessageParser.HttpRequestParser((SocketChannel)keyClient.channel());
-                            String messageString=new String(message);
-                            System.out.println("message from "+keyClient.attachment()+":\n"+messageString);
-                            //The "spy" effect
-
-                                //TODO add the usr & pass fetcher
-
-
-                           int numberOfBytesWritten= ((SocketChannel)this.keyDestination.channel()).write(ByteBuffer.wrap(message));
-                           if(numberOfBytesWritten!=message.length)
-                           {
-                               System.out.println("reading less");
-                               int x=4;
-                               //TODO information leak exception
-                           }
-
-                   }
-
-                    if(this.keyDestination.isReadable()&&this.keyClient.isWritable())
-                    {
-                        byte [] message=MessageParser.HttpRequestParser((SocketChannel)keyDestination.channel());
-                        String messageString=new String(message);
-                        System.out.println("message from "+keyDestination.attachment()+":\n"+messageString);
-                        //The "spy" effect
-
-                        //TODO add the usr & pass fetcher
-
-
-                        int numberOfBytesWritten= ((SocketChannel)this.keyClient.channel()).write(ByteBuffer.wrap(message));
-                        if(numberOfBytesWritten!=message.length)
-                        {
-                            System.out.println("reading less");
-                            int x=4;
-                            //TODO information leak exception
-                        }
-
-                    }
+//                while (true)
+//                {
+//                    selector.select();
+//                    Set<SelectionKey> selectedKeys = selector.selectedKeys();
+//                 if(selectedKeys.size()!=2)
+//                    {
+//                     continue;
+//                    }
+//                    //else
+//                    selectedKeys.clear();
+//                    byte [] message;
+//                   if(this.keyClient.isReadable()&&this.keyDestination.isWritable())
+//                   {
+////                       if((message=MessageParser.HttpRequestParser((SocketChannel)keyClient.channel()))==null)
+//                       {
+//                           return;
+//                       }
+//
+//                            String messageString=new String(message);
+//                            System.out.println("message from "+keyClient.attachment()+":\n"+messageString);
+////                            The "spy" effect
+//
+////                                TODO add the usr & pass fetcher
+//
+//
+//                           int numberOfBytesWritten= ((SocketChannel)this.keyDestination.channel()).write(x);
+//                           if(numberOfBytesWritten!=message.length)
+//                           {
+//                               System.out.println("reading less");
+////                               int x=4;
+//                               //TODO information leak exception
+////                           }
+//
+//                   }
+//
+//                    if(this.keyDestination.isReadable()&&this.keyClient.isWritable())
+//                    {
+//
+//                        if((message=MessageParser.HttpRequestParser((SocketChannel)keyDestination.channel()))==null)
+//                        {
+//                            return;
+//                        }
+//                         messageString=new String(message);
+//                        System.out.println("message from "+keyDestination.attachment()+":\n"+messageString);
+//                        //The "spy" effect
+//
+//                        //TODO add the usr & pass fetcher
+//
+//
+//                         numberOfBytesWritten= ((SocketChannel)this.keyClient.channel()).write(ByteBuffer.wrap(message));
+//                        if(numberOfBytesWritten!=message.length)
+//                        {
+//                            System.out.println("reading less");
+//                            int x=4;
+//                            //TODO information leak exception
+//                        }
+//
+//                    }
 
 
 
@@ -158,7 +217,7 @@ class EchoRunnable implements Runnable {
 //                        }
 //
 //                    }
-                }
+//                }
 
 
                 //close when one terminates
@@ -199,8 +258,8 @@ class EchoRunnable implements Runnable {
             SelectionKey keyDestination = destinationChannel.register(selector, 5);
             keyDestination.attach("dst");
 //            System.out.println(keyDestination.selector().);
-            System.out.println("keyClient:"+( keyClient.interestOps()==5));
-            System.out.println("keyDestination:"+(keyDestination.interestOps()==5));
+//            System.out.println("keyClient:"+( keyClient.interestOps()==5));
+//            System.out.println("keyDestination:"+(keyDestination.interestOps()==5));
             this.selector= selector;
             this.keyDestination=keyDestination;
             this.keyClient=keyClient;
@@ -223,7 +282,7 @@ class EchoRunnable implements Runnable {
 class Sockspy {
     public static void main(String argv[]) throws Exception {
         System.out.println("helo");
-//        System.out.println("googls IP:"+MessageParser.DomainIPresolve("www.google.com"));
+        System.out.println("googls IP:"+MessageParser.DomainIPresolve("www.google.com"));
 
         ServerSocketChannel welcomeSocket = ServerSocketChannel.open();
         welcomeSocket.bind(new InetSocketAddress(8080));
