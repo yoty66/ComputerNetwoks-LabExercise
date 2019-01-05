@@ -7,243 +7,151 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.*;
 
-class EchoRunnable implements Runnable {
+class ClientThread implements Runnable {
     private SocketChannel clientChannel ;
     private SocketChannel destinationChannel;
     private Selector selector ;
   private SelectionKey keyDestination;
   private SelectionKey keyClient;
-    private int Tnumber;
 
-    public EchoRunnable(SocketChannel clientChannel,int Tnumber) {
+    ClientThread(SocketChannel clientChannel) {
         this.clientChannel = clientChannel;
-        this.Tnumber=Tnumber;
 
-//        try {
-//            this.clientChannel.setSoTimeout(500);
-//        } catch (SocketException e) {
-//        }
 
     }
         @Override
         public void run () {
-            System.out.println("connected");
-            try
-            {
+            String clientsIP=null ; //to be used if connection succseed
+            String clientsPORT=null;
+            try {
 
                 //Parse Socks 4 request
-                ConcurrentHashMap<String, Object> map =MessageParser.Socks4Parser(clientChannel);
-                MessageParser.Socks4ParserPrinter(map);
+
+                ConcurrentHashMap<String, Object> map = MessageParser.Socks4Parser(clientChannel);
+//                MessageParser.Socks4ParserPrinter(map);
+
+
                 // validate request
 
 
                 // 0 - message is valid 1-"wrong Sock4 request - Command isn't supported" 2-"wrong Sock4 request - Wrong version "
-               int validrequest= MessageParser.Socks4MessageValidator(map);
+                int validrequest = MessageParser.Socks4MessageValidator(map);
 
                 //handle falsy request
 
-                if(validrequest!=0 )
+                if (validrequest !=0)
                 {
-                    System.err.println("Connection error: while Parsing  Socks4 request: invalid request ");
+                    System.err.println("Connection error: while Parsing  Socks4 request:"+
+                            (validrequest==1?"Command isn't supported":"Wrong version"));
                     return;
                 }
-                //Establish dst channel
-                String DSTIP=(String)map.get("DSTIP");
-                int DSTPORT=(int)map.get("DSTPORT");
-                String clientsIP="127.0.0.1"; //to be used if connection succseed
-                String   clientsPORT = this.clientChannel.getRemoteAddress().toString().replace("/","");
-                this.destinationChannel  = SocketChannel.open();
-                InetSocketAddress destinationAdress=new InetSocketAddress(
-                        DSTIP  ,
-                        DSTPORT);
 
+                //Establish dst channel and report
 
-                if((destinationChannel.connect(destinationAdress))==true)
+                // set some constants
+                String DSTIP = (String) map.get("DSTIP");
+                int DSTPORT = (int) map.get("DSTPORT");
+                clientsIP = "127.0.0.1";
+                clientsPORT = (this.clientChannel.getRemoteAddress().toString()).replaceFirst("(.*):(.*)$","$2");
+
+                this.destinationChannel = SocketChannel.open();
+                InetSocketAddress destinationAddress = new InetSocketAddress(DSTIP, DSTPORT);
+
+                if (!(destinationChannel.connect(destinationAddress)))
                 {
-                    MessageParser.Socks4ReplyWriter(90,clientChannel);
-                    System.out.println("Successful connection from " +
-//                            this.clientChannel.getRemoteAddress().toString() +
-//                           x +
-                            " to "
-                            + DSTIP+":"+DSTPORT );
+                    System.err.println("Connection error: while connecting to dest: Connection failed  ");
+                    return;
+                }
+                //else
+                MessageParser.Socks4ReplyWriter(90, clientChannel);
+                System.out.println("Successful connection from " + clientsIP+":"+clientsPORT+ " to "+DSTIP + ":" + DSTPORT);
 
+                //establish selector
+                this.establishSelector(clientChannel, destinationChannel);
+                //main loop
+                while (true) {
+                    selector.select();
+                    Set<SelectionKey> selectedKeys = selector.selectedKeys();
+                    if (selectedKeys.size() != 2) {
+
+                        continue;
+                    }
+                    //else
+                    selectedKeys.clear();
+//                    byte[] message;
+                    if (this.keyClient.isReadable() && this.keyDestination.isWritable()) {
+                        boolean messageHandlerResult = MessageHandler(this.clientChannel, this.destinationChannel, true);
+                        if (!messageHandlerResult) {
+                            return;//proper message was printed to std err during MessageHandler run
+                        }
+                    }
+
+                        if (this.keyDestination.isReadable() && this.keyClient.isWritable()) {
+                        boolean messageHandlerResult = MessageHandler(this.destinationChannel, this.clientChannel, false);
+                        if (!messageHandlerResult)
+                        {
+                            return;//proper message was printed to std err during MessageHandler run
+                        }
+
+                    }
                 }
 
-
-                System.out.println("destenationSocket adress:"+destinationAdress.getAddress());
-                //establish selector
-               this.establishSelector(clientChannel,destinationChannel);
-
-
-
-                ////bug testing
-
-
-//                ByteBuffer x=ByteBuffer.allocate(
-//                        8192  //max size of an http request
-//                        +1000);
-//                x.clear();
-//                int byteRed=clientChannel.read(x);
-//                if(byteRed==-1)
-//                {
-//                    System.out.println("channel closed");
-//                    return;
-//                }
 //
-//                x.flip();
-//                String message= new String(Arrays.copyOfRange(x.array(),0,byteRed+1));
-//                System.out.println("messgae:"+message);
-//                int bytewritten=this.destinationChannel.write(x);
-//                x.clear();
-//                if(bytewritten!=message.length())
-//                {
-//                    System.out.println("inffff");
-////                    return;
-//                }
-//
-//                ByteBuffer y=ByteBuffer.allocate(
-//                        8192  //max size of an http request
-//                                +1000);
-//                y.clear();
-//                 byteRed=destinationChannel.read(y);
-//                if(byteRed==-1)
-//                {
-//                    System.out.println("channel closed");
-//                    return;
-//                }
-//
-//                y.flip();
-//                 message= new String(Arrays.copyOfRange(y.array(),0,byteRed+1));
-//                System.out.println("messgae:"+message);
 
-////bug testing
-
-
-
-               //main loop
-//                while (true)
-//                {
-//                    selector.select();
-//                    Set<SelectionKey> selectedKeys = selector.selectedKeys();
-//                 if(selectedKeys.size()!=2)
-//                    {
-//                     continue;
-//                    }
-//                    //else
-//                    selectedKeys.clear();
-//                    byte [] message;
-//                   if(this.keyClient.isReadable()&&this.keyDestination.isWritable())
-//                   {
-////                       if((message=MessageParser.HttpRequestParser((SocketChannel)keyClient.channel()))==null)
-//                       {
-//                           return;
-//                       }
-//
-//                            String messageString=new String(message);
-//                            System.out.println("message from "+keyClient.attachment()+":\n"+messageString);
-////                            The "spy" effect
-//
-////                                TODO add the usr & pass fetcher
-//
-//
-//                           int numberOfBytesWritten= ((SocketChannel)this.keyDestination.channel()).write(x);
-//                           if(numberOfBytesWritten!=message.length)
-//                           {
-//                               System.out.println("reading less");
-////                               int x=4;
-//                               //TODO information leak exception
-////                           }
-//
-//                   }
-//
-//                    if(this.keyDestination.isReadable()&&this.keyClient.isWritable())
-//                    {
-//
-//                        if((message=MessageParser.HttpRequestParser((SocketChannel)keyDestination.channel()))==null)
-//                        {
-//                            return;
-//                        }
-//                         messageString=new String(message);
-//                        System.out.println("message from "+keyDestination.attachment()+":\n"+messageString);
-//                        //The "spy" effect
-//
-//                        //TODO add the usr & pass fetcher
-//
-//
-//                         numberOfBytesWritten= ((SocketChannel)this.keyClient.channel()).write(ByteBuffer.wrap(message));
-//                        if(numberOfBytesWritten!=message.length)
-//                        {
-//                            System.out.println("reading less");
-//                            int x=4;
-//                            //TODO information leak exception
-//                        }
-//
-//                    }
-
-
-
-
-
-
-
-
-//                    selector.select();
-//                    Set<SelectionKey> selectedKeys = selector.selectedKeys();
-//                    Iterator<SelectionKey> iter = selectedKeys.iterator();
-//                    while (iter.hasNext())
-//                    {
-//                        SelectionKey key = iter.next();
-//                        boolean isClientKey=key.attachment()=="client";
-//                        SelectionKey oppositeKey=isClientKey?this.keyDestination:this.keyClient;
-//                        if (key.isReadable()&& oppositeKey.isWritable())
-//                        {
-//                            byte [] message=MessageParser.HttpRequestParser((SocketChannel)key.channel());
-//                            String messageString=new String(message);
-//                            System.out.println("message from "+key.attachment()+":\n"+messageString);
-//                            //The "spy" effect
-//                            if(isClientKey)
-//                            {
-//                                //TODO add the usr & pass fetcher
-//                            }
-//
-//                           int numberOfBytesWritten= ((SocketChannel)oppositeKey.channel()).write(ByteBuffer.wrap(message));
-//                           if(numberOfBytesWritten!=message.length)
-//                           {
-//                               System.out.println("reading less");
-//                               int x=4;
-//                               //TODO information leak exception
-//                           }
-//                            iter.remove();
-//                        }
-//
-//                    }
-//                }
-
-
-                //close when one terminates
-
-}
+                }
 
 
 
 //TODO add UnresolvedAddressException exeception
 
-            catch( UnresolvedAddressException e){
+            catch(UnresolvedAddressException e){
 
-                System.err.println("Connection error: while connecting to destination: Unresolved Address ");
-            }
-         catch(IOException e){
-                System.err.println(e.getMessage());
-            }
+                        System.err.println("Connection error: while connecting to destination: Unresolved Address ");
+                    }
+         catch(IOException | NullPointerException e){
+                        System.err.println(e.getMessage());
+                    }
             finally{
-                try {
-                    if(this.clientChannel!=null)
-                    this.clientChannel.close();
-                } catch (IOException e) {
-                }
-            }
-        }
+                System.out.println("Closing connection from"+clientsIP+":"+clientsPORT);
+                        try {
+                            if (this.clientChannel != null)
+                                this.clientChannel.close();
+                            if(this.destinationChannel!=null)
+                                this.destinationChannel.close();
+                        }
+                        catch (IOException e) { }
+                    }
 
+            }
+
+
+        private static boolean MessageHandler(SocketChannel sender ,SocketChannel reciver , boolean isClient) throws IOException
+        {
+            ByteBuffer x=ByteBuffer.allocate(
+                        8192  //max size of an http request
+                        +1000);
+                x.clear();
+                int byteRed=sender.read(x);
+                if(byteRed==-1)
+                {
+                    System.err.println("Connection error: while reading from"+(isClient?"client":"dest")+": Channel is closed ");
+                    return false;
+                }
+
+                x.flip();
+                String message= new String(Arrays.copyOfRange(x.array(),0,byteRed));
+
+                System.out.println("message:"+message);
+                int bytewritten=reciver.write(x);
+                x.clear();
+                if(bytewritten!=message.length())
+                {
+                    System.err.println("Connection error: while writing to  "+(isClient?"dest":"client")+": Channel is closed ");
+                    return false;
+                }
+
+            return true;
+        }
 
         //constant-values  for SelectionKey :  OP_READ-1  	OP_WRITE-4  	OP_CONNECT	8 OP_ACCEPt-16
         private void establishSelector (SocketChannel clientChannel,SocketChannel destinationChannel) throws IOException
@@ -253,9 +161,9 @@ class EchoRunnable implements Runnable {
             clientChannel.configureBlocking(false);
             destinationChannel.configureBlocking(false);
 
-            SelectionKey keyClient= clientChannel.register(selector, 5);
+            SelectionKey keyClient= clientChannel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
             keyClient.attach("client");
-            SelectionKey keyDestination = destinationChannel.register(selector, 5);
+            SelectionKey keyDestination = destinationChannel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
             keyDestination.attach("dst");
 //            System.out.println(keyDestination.selector().);
 //            System.out.println("keyClient:"+( keyClient.interestOps()==5));
@@ -266,40 +174,27 @@ class EchoRunnable implements Runnable {
         }
 
 
-//    // test: stop excepting after 20 concurrent connections are established
-//    @Override
-//    public void run () {
-//        System.out.println("Thread number:"+this.Tnumber);
-//        while(true)
-//        {
-//
-//        }
-//    }
     }
 
 
 
 class Sockspy {
-    public static void main(String argv[]) throws Exception {
-        System.out.println("helo");
-        System.out.println("googls IP:"+MessageParser.DomainIPresolve("www.google.com"));
-
-        ServerSocketChannel welcomeSocket = ServerSocketChannel.open();
-        welcomeSocket.bind(new InetSocketAddress(8080));
-//                new ServerSocketChannel(8080);  // bind + listen
-        ExecutorService executor = Executors.newFixedThreadPool(20);
-        int Tnember=1;
-        while (true)
-        {
-            SocketChannel clientSocket = welcomeSocket.accept();
-
-
-            boolean empty =clientSocket==null;
-//            System.out.println("clientChannel is empty: "+empty);
-            Runnable worker = new EchoRunnable(clientSocket,Tnember);
-            Tnember++;
-            executor.execute(worker);
+    public static void main(String argv[])
+    {
+        try {
+            ServerSocketChannel welcomeSocket = ServerSocketChannel.open();
+            welcomeSocket.bind(new InetSocketAddress(8080));
+            ExecutorService executor = Executors.newFixedThreadPool(20);
+            boolean connect=true;
+            while (connect) {
+                SocketChannel clientSocket = welcomeSocket.accept();
+                Runnable worker = new ClientThread(clientSocket);
+                executor.execute(worker);
+            }
         }
-        // executor.shutdown();
+        catch (IOException e)
+        {
+            System.err.println("Connection error: while writing to connecting to client: "+e.getMessage());
+        }
     }
 }
