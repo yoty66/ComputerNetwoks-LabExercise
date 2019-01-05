@@ -28,21 +28,21 @@ class ClientThread implements Runnable {
                 //Parse Socks 4 request
 
                 ConcurrentHashMap<String, Object> map = MessageParser.Socks4Parser(clientChannel);
-//                MessageParser.Socks4ParserPrinter(map);
+
 
 
                 // validate request
 
 
                 // 0 - message is valid 1-"wrong Sock4 request - Command isn't supported" 2-"wrong Sock4 request - Wrong version "
-                int validrequest = MessageParser.Socks4MessageValidator(map);
+                int validRequest = MessageParser.Socks4MessageValidator(map);
 
                 //handle falsy request
 
-                if (validrequest !=0)
+                if (validRequest !=0)
                 {
                     System.err.println("Connection error: while Parsing  Socks4 request:"+
-                            (validrequest==1?"Command isn't supported":"Wrong version"));
+                            (validRequest==1?"Command isn't supported":"Unsupported SOCKS protocol version"));
                     return;
                 }
 
@@ -102,7 +102,7 @@ class ClientThread implements Runnable {
 
 
 
-//TODO add UnresolvedAddressException exeception
+
 
             catch(UnresolvedAddressException e){
 
@@ -112,7 +112,7 @@ class ClientThread implements Runnable {
                         System.err.println(e.getMessage());
                     }
             finally{
-                System.out.println("Closing connection from"+clientsIP+":"+clientsPORT);
+                System.out.println("Closing connection from:  "+clientsIP+":"+clientsPORT);
                         try {
                             if (this.clientChannel != null)
                                 this.clientChannel.close();
@@ -134,14 +134,17 @@ class ClientThread implements Runnable {
                 int byteRed=sender.read(x);
                 if(byteRed==-1)
                 {
-                    System.err.println("Connection error: while reading from"+(isClient?"client":"dest")+": Channel is closed ");
+                    System.err.println("Connection error: while reading from  "+(isClient?"client":"dest")+": Channel is closed ");
                     return false;
                 }
 
                 x.flip();
-                String message= new String(Arrays.copyOfRange(x.array(),0,byteRed));
+            String message = new String(Arrays.copyOfRange(x.array(), 0, byteRed));
+                if(isClient) {
+//                    TODO: ADD the 'spy' element.
 
-                System.out.println("message:"+message);
+                }
+//                System.out.println("message:"+message);
                 int bytewritten=reciver.write(x);
                 x.clear();
                 if(bytewritten!=message.length())
@@ -165,9 +168,6 @@ class ClientThread implements Runnable {
             keyClient.attach("client");
             SelectionKey keyDestination = destinationChannel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
             keyDestination.attach("dst");
-//            System.out.println(keyDestination.selector().);
-//            System.out.println("keyClient:"+( keyClient.interestOps()==5));
-//            System.out.println("keyDestination:"+(keyDestination.interestOps()==5));
             this.selector= selector;
             this.keyDestination=keyDestination;
             this.keyClient=keyClient;

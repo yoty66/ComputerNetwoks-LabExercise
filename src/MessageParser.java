@@ -17,8 +17,8 @@ import java.util.*;
         int byteRed=0;
         byte[] valuesVMtoDSTIP;
 
-try
-{
+        try
+        {
         byteBuffer=ByteBuffer.allocate(100);
         byteBuffer.clear();
         byteRed=clientSocket.read(byteBuffer);
@@ -33,9 +33,11 @@ try
 
     String IPvalue = (0xff &valuesVMtoDSTIP[4])+"."+(0xff &valuesVMtoDSTIP[5])
             +"."+(0xff &valuesVMtoDSTIP[6])+"."+(0xff &valuesVMtoDSTIP[7]);
+            //TODO add A4 support from here
             map.put("DSTIP", IPvalue);
 
 }
+//TODO add UnresolvedAddressException exeception: when adding the A4 support
         catch (IOException | NullPointerException e)
         {
             System.err.println("Connection error: while parsing SOCKS request:"+e.getMessage());
