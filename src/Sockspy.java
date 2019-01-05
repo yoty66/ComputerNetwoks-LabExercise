@@ -11,11 +11,14 @@ class EchoRunnable implements Runnable {
     private SocketChannel clientChannel ;
     private SocketChannel destinationChannel;
     private Selector selector ;
+  private SelectionKey keyDestination;
+  private SelectionKey keyClient;
     private int Tnumber;
 
     public EchoRunnable(SocketChannel clientChannel,int Tnumber) {
         this.clientChannel = clientChannel;
         this.Tnumber=Tnumber;
+
 //        try {
 //            this.clientChannel.setSoTimeout(500);
 //        } catch (SocketException e) {
@@ -65,29 +68,96 @@ class EchoRunnable implements Runnable {
 
                 System.out.println("destenationSocket adress:"+destinationAdress.getAddress());
                 //establish selector
-               this.selector= establishSelector(clientChannel,destinationChannel);
+               this.establishSelector(clientChannel,destinationChannel);
 
                //main loop
                 while (true)
                 {
                     selector.select();
                     Set<SelectionKey> selectedKeys = selector.selectedKeys();
-                    Iterator<SelectionKey> iter = selectedKeys.iterator();
-                    while (iter.hasNext()) {
-                        SelectionKey key = iter.next();
-                        if (key.isReadable()&&key.isWritable())
-                        {
-                            byte [] message=MessageParser.HttpRequestParser((SocketChannel)key.channel());
-                           int numberOfBytesWritten= ((SocketChannel)key.channel()).write(ByteBuffer.wrap(message));
+                 if(selectedKeys.size()!=2)
+                    {
+                     continue;
+                    }
+                    //else
+                    selectedKeys.clear();
+                   if(this.keyClient.isReadable()&&this.keyDestination.isWritable())
+                   {
+                       byte [] message=MessageParser.HttpRequestParser((SocketChannel)keyClient.channel());
+                            String messageString=new String(message);
+                            System.out.println("message from "+keyClient.attachment()+":\n"+messageString);
+                            //The "spy" effect
+
+                                //TODO add the usr & pass fetcher
+
+
+                           int numberOfBytesWritten= ((SocketChannel)this.keyDestination.channel()).write(ByteBuffer.wrap(message));
                            if(numberOfBytesWritten!=message.length)
                            {
+                               System.out.println("reading less");
                                int x=4;
                                //TODO information leak exception
                            }
-                            iter.remove();
+
+                   }
+
+                    if(this.keyDestination.isReadable()&&this.keyClient.isWritable())
+                    {
+                        byte [] message=MessageParser.HttpRequestParser((SocketChannel)keyDestination.channel());
+                        String messageString=new String(message);
+                        System.out.println("message from "+keyDestination.attachment()+":\n"+messageString);
+                        //The "spy" effect
+
+                        //TODO add the usr & pass fetcher
+
+
+                        int numberOfBytesWritten= ((SocketChannel)this.keyClient.channel()).write(ByteBuffer.wrap(message));
+                        if(numberOfBytesWritten!=message.length)
+                        {
+                            System.out.println("reading less");
+                            int x=4;
+                            //TODO information leak exception
                         }
 
                     }
+
+
+
+
+
+
+
+
+//                    selector.select();
+//                    Set<SelectionKey> selectedKeys = selector.selectedKeys();
+//                    Iterator<SelectionKey> iter = selectedKeys.iterator();
+//                    while (iter.hasNext())
+//                    {
+//                        SelectionKey key = iter.next();
+//                        boolean isClientKey=key.attachment()=="client";
+//                        SelectionKey oppositeKey=isClientKey?this.keyDestination:this.keyClient;
+//                        if (key.isReadable()&& oppositeKey.isWritable())
+//                        {
+//                            byte [] message=MessageParser.HttpRequestParser((SocketChannel)key.channel());
+//                            String messageString=new String(message);
+//                            System.out.println("message from "+key.attachment()+":\n"+messageString);
+//                            //The "spy" effect
+//                            if(isClientKey)
+//                            {
+//                                //TODO add the usr & pass fetcher
+//                            }
+//
+//                           int numberOfBytesWritten= ((SocketChannel)oppositeKey.channel()).write(ByteBuffer.wrap(message));
+//                           if(numberOfBytesWritten!=message.length)
+//                           {
+//                               System.out.println("reading less");
+//                               int x=4;
+//                               //TODO information leak exception
+//                           }
+//                            iter.remove();
+//                        }
+//
+//                    }
                 }
 
 
@@ -117,7 +187,7 @@ class EchoRunnable implements Runnable {
 
 
         //constant-values  for SelectionKey :  OP_READ-1  	OP_WRITE-4  	OP_CONNECT	8 OP_ACCEPt-16
-        private Selector establishSelector (SocketChannel clientChannel,SocketChannel destinationChannel) throws IOException
+        private void establishSelector (SocketChannel clientChannel,SocketChannel destinationChannel) throws IOException
         {
             Selector selector = Selector.open();
 
@@ -131,7 +201,9 @@ class EchoRunnable implements Runnable {
 //            System.out.println(keyDestination.selector().);
             System.out.println("keyClient:"+( keyClient.interestOps()==5));
             System.out.println("keyDestination:"+(keyDestination.interestOps()==5));
-            return selector;
+            this.selector= selector;
+            this.keyDestination=keyDestination;
+            this.keyClient=keyClient;
         }
 
 
@@ -150,6 +222,9 @@ class EchoRunnable implements Runnable {
 
 class Sockspy {
     public static void main(String argv[]) throws Exception {
+        System.out.println("helo");
+//        System.out.println("googls IP:"+MessageParser.DomainIPresolve("www.google.com"));
+
         ServerSocketChannel welcomeSocket = ServerSocketChannel.open();
         welcomeSocket.bind(new InetSocketAddress(8080));
 //                new ServerSocketChannel(8080);  // bind + listen
@@ -159,8 +234,7 @@ class Sockspy {
         {
             SocketChannel clientSocket = welcomeSocket.accept();
 
-//            SocketChannel clientChannel=SocketChannel.open();
-//             clientChannel =clientSocket.getChannel();
+
             boolean empty =clientSocket==null;
 //            System.out.println("clientChannel is empty: "+empty);
             Runnable worker = new EchoRunnable(clientSocket,Tnember);
