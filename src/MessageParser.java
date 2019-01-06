@@ -2,6 +2,8 @@ import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.nio.channels.UnresolvedAddressException;
+import java.security.InvalidParameterException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ConcurrentHashMap;
@@ -14,29 +16,52 @@ import java.util.*;
 
         ByteBuffer byteBuffer;
         ConcurrentHashMap<String, Object> map = new ConcurrentHashMap();
-        int byteRed=0;
+        int byteRead=0;
         byte[] valuesVMtoDSTIP;
+
+        //for 4a support
+         int startIndex;
+         int index;
+         byte val;
+         String domain;
+
+
 
         try
         {
-        byteBuffer=ByteBuffer.allocate(100);
-        byteBuffer.clear();
-        byteRed=clientSocket.read(byteBuffer);
-         byteBuffer.clear();
-        valuesVMtoDSTIP=byteBuffer.array();
-        map.put("VN", valuesVMtoDSTIP[0]);
-
+            byteBuffer=ByteBuffer.allocate(100);
+            byteBuffer.clear();
+            byteRead=clientSocket.read(byteBuffer);
+            byteBuffer.clear();
+            valuesVMtoDSTIP=byteBuffer.array();
+            map.put("VN", valuesVMtoDSTIP[0]);
             map.put("CD", (byte)valuesVMtoDSTIP[1]);
+            int port=(valuesVMtoDSTIP[2] & 0xFF) << 8 | (valuesVMtoDSTIP[3] & 0xFF);
+            map.put("DSTPORT", port);
 
-    int port=(valuesVMtoDSTIP[2] & 0xFF) << 8 | (valuesVMtoDSTIP[3] & 0xFF);
-    map.put("DSTPORT", port);
 
-    String IPvalue = (0xff &valuesVMtoDSTIP[4])+"."+(0xff &valuesVMtoDSTIP[5])
-            +"."+(0xff &valuesVMtoDSTIP[6])+"."+(0xff &valuesVMtoDSTIP[7]);
-            //TODO add A4 support from here
-            map.put("DSTIP", IPvalue);
+            if ((0xff & valuesVMtoDSTIP[4]) == 0 && (0xff & valuesVMtoDSTIP[5]) == 0 &&
+                    (0xff & valuesVMtoDSTIP[6]) == 0 && (0xff & valuesVMtoDSTIP[7]) != 0){
 
-}
+                startIndex = 9;
+                index = startIndex;
+                val = valuesVMtoDSTIP[index];
+                while (val != 0){
+                    index ++;
+                    val = valuesVMtoDSTIP[index];
+                }
+
+                domain = new String(valuesVMtoDSTIP, startIndex, index-startIndex);
+                DomainIPResolve(domain);
+                map.put("DSTIP", domain);
+
+            } else {
+                String IPvalue = (0xff & valuesVMtoDSTIP[4]) + "." + (0xff & valuesVMtoDSTIP[5])
+                        + "." + (0xff & valuesVMtoDSTIP[6]) + "." + (0xff & valuesVMtoDSTIP[7]);
+                map.put("DSTIP", IPvalue);
+            }
+
+        }
 //TODO add UnresolvedAddressException exeception: when adding the A4 support
         catch (IOException | NullPointerException e)
         {
@@ -44,6 +69,7 @@ import java.util.*;
         }
          return map;
     }
+
 
      static void  Socks4ReplyWriter(int reply, SocketChannel outToClient) {
 //        DataOutputStream outToClient=null;
