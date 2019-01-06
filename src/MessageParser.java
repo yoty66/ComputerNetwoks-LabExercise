@@ -42,7 +42,6 @@ import java.util.*;
 
             if ((0xff & valuesVMtoDSTIP[4]) == 0 && (0xff & valuesVMtoDSTIP[5]) == 0 &&
                     (0xff & valuesVMtoDSTIP[6]) == 0 && (0xff & valuesVMtoDSTIP[7]) != 0){
-
                 startIndex = 9;
                 index = startIndex;
                 val = valuesVMtoDSTIP[index];
