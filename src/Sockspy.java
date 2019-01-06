@@ -119,7 +119,9 @@ class ClientThread implements Runnable {
                             if(this.destinationChannel!=null)
                                 this.destinationChannel.close();
                         }
-                        catch (IOException e) { }
+                        catch (IOException e) {
+                            System.err.println("Connection error: while closing connection : "+e.getMessage());
+                        }
                     }
 
             }
@@ -181,11 +183,12 @@ class ClientThread implements Runnable {
 class Sockspy {
     public static void main(String argv[])
     {
+        boolean connect;
         try {
             ServerSocketChannel welcomeSocket = ServerSocketChannel.open();
             welcomeSocket.bind(new InetSocketAddress(8080));
             ExecutorService executor = Executors.newFixedThreadPool(20);
-            boolean connect=true;
+             connect=true;
             while (connect) {
                 SocketChannel clientSocket = welcomeSocket.accept();
                 Runnable worker = new ClientThread(clientSocket);
