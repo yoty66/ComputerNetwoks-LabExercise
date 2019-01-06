@@ -3,6 +3,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.util.Base64;
 import java.util.concurrent.ConcurrentHashMap;
  class MessageParser {
 
@@ -111,6 +112,20 @@ import java.util.concurrent.ConcurrentHashMap;
      }
 
 
+//
+//     GET / HTTP/1.1
+//     Host: google.com
+//     Authorization: Basic bmF0aTpzdXBlcnNlY3JldA==
+//     User-Agent: curl/7.54.0
+//     Accept: */*
+
+    static String basicAUthenticaitionExtractorAndDecoder(String message)
+    {
+        String encodedAuth=message.split("Authorization: Basic ")[1].split("\\s")[0];
+        String host=message.split("Host: ")[1].split("\\s")[0];
+        String decodedAuth= new String(Base64.getDecoder().decode(encodedAuth));
+        return decodedAuth+"@"+host;
+    }
 }
 
 

