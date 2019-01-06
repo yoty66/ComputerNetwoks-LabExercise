@@ -1,13 +1,9 @@
-import java.io.*;
-import java.net.*;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-import java.nio.channels.UnresolvedAddressException;
-import java.security.InvalidParameterException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.*;
  class MessageParser {
 
 
@@ -15,7 +11,7 @@ import java.util.*;
      static ConcurrentHashMap<String, Object> Socks4Parser(SocketChannel clientSocket) {
 
         ByteBuffer byteBuffer;
-        ConcurrentHashMap<String, Object> map = new ConcurrentHashMap();
+        ConcurrentHashMap map = new ConcurrentHashMap();
         int byteRead=0;
         byte[] valuesVMtoDSTIP;
 
@@ -35,7 +31,7 @@ import java.util.*;
             byteBuffer.clear();
             valuesVMtoDSTIP=byteBuffer.array();
             map.put("VN", valuesVMtoDSTIP[0]);
-            map.put("CD", (byte)valuesVMtoDSTIP[1]);
+            map.put("CD", valuesVMtoDSTIP[1]);
             int port=(valuesVMtoDSTIP[2] & 0xFF) << 8 | (valuesVMtoDSTIP[3] & 0xFF);
             map.put("DSTPORT", port);
 
@@ -109,7 +105,7 @@ import java.util.*;
 //
 //    }
 
-    public static InetAddress DomainIPResolve(String domain ) throws UnknownHostException
+     static InetAddress DomainIPResolve(String domain ) throws UnknownHostException
      {
         return InetAddress.getByName(domain);
      }
